@@ -31,17 +31,18 @@ typedef struct sNpContext
 
    uint8_t *buffer;
    uint32_t bufferSize;
+   bool rg_transpose;
 }  tNpContext;
 
 static void neopixel_task(void *arg);
 static bool i2s_tx_queue_sent_callback(i2s_chan_handle_t handle, i2s_event_data_t *event, void *user_ctx);
-static void setpixel(uint8_t *buffer, uint32_t index, uint32_t rgb);
+static void setpixel(uint8_t *buffer, uint32_t index, uint32_t rgb, bool rg_transpose);
 
 /* -------------------------------------------------------------------------------------------------------------
  * Exported Functions
  */
 
-tNeopixelContext *neopixel_Init(uint32_t pixels, int dout_pin)
+tNeopixelContext *neopixel_Init(uint32_t pixels, int dout_pin, bool rg_transpose)
 {
    tNpContext *c = NULL; 
    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
@@ -82,6 +83,7 @@ tNeopixelContext *neopixel_Init(uint32_t pixels, int dout_pin)
    c->dataSent = xSemaphoreCreateBinary();
    c->terminate = false;
    c->bytesSent = 0;
+   c->rg_transpose = rg_transpose;
 
    c->buffer = (uint8_t *)malloc(c->bufferSize);
    memset(c->buffer, 0, c->bufferSize); /* initializes the reset bytes to zero */
@@ -134,7 +136,7 @@ bool neopixel_SetPixel(tNeopixelContext ctx, tNeopixel *pixel, uint32_t pixelCou
          success = false;
       }
       else
-         setpixel(c->buffer, p->index, p->rgb);
+         setpixel(c->buffer, p->index, p->rgb, c->rg_transpose);
    }
    taskEXIT_CRITICAL(&c->lock);
    xSemaphoreGive(c->newData);
@@ -210,22 +212,14 @@ static void neopixel_task(void *arg)
    vTaskDelete(NULL); /* Destroy context */
 }
 
-static void setpixel(uint8_t *buffer, uint32_t index, uint32_t rgb)
+static void setpixel(uint8_t *buffer, uint32_t index, uint32_t rgb, bool rg_transpose)
 {
    uint32_t offset = index * WS2182B_BYTES_PER_PIXEL;
-   #ifdef RED_GREEN_SWAP
-   const uint8_t *sequence = ws2812b_color_map[NP_RGB2RED(rgb)];
-   #else
-   const uint8_t *sequence = ws2812b_color_map[NP_RGB2GREEN(rgb)];
-   #endif
+   const uint8_t *sequence = rg_transpose?ws2812b_color_map[NP_RGB2RED(rgb)]:ws2812b_color_map[NP_RGB2GREEN(rgb)];
    for(int i = 0; i < WS2182B_BYTES_PER_PIXEL; ++i, ++offset)
    {
       if(i == 3)
-         #ifdef RED_GREEN_SWAP
-         sequence = ws2812b_color_map[NP_RGB2GREEN(rgb)];
-         #else
-         sequence = ws2812b_color_map[NP_RGB2RED(rgb)];
-         #endif
+         sequence = rg_transpose?ws2812b_color_map[NP_RGB2GREEN(rgb)]:ws2812b_color_map[NP_RGB2RED(rgb)];
       if(i == 6)
          sequence = ws2812b_color_map[NP_RGB2BLUE(rgb)];
       buffer[offset ^ 1] = sequence[i % WS2182B_BYTES_PER_COLOR];  /* Fill buffer in 16-bit little-endian format */

@@ -213,11 +213,19 @@ static void neopixel_task(void *arg)
 static void setpixel(uint8_t *buffer, uint32_t index, uint32_t rgb)
 {
    uint32_t offset = index * WS2182B_BYTES_PER_PIXEL;
+   #ifdef RED_GREEN_SWAP
+   const uint8_t *sequence = ws2812b_color_map[NP_RGB2RED(rgb)];
+   #else
    const uint8_t *sequence = ws2812b_color_map[NP_RGB2GREEN(rgb)];
+   #endif
    for(int i = 0; i < WS2182B_BYTES_PER_PIXEL; ++i, ++offset)
    {
       if(i == 3)
+         #ifdef RED_GREEN_SWAP
+         sequence = ws2812b_color_map[NP_RGB2GREEN(rgb)];
+         #else
          sequence = ws2812b_color_map[NP_RGB2RED(rgb)];
+         #endif
       if(i == 6)
          sequence = ws2812b_color_map[NP_RGB2BLUE(rgb)];
       buffer[offset ^ 1] = sequence[i % WS2182B_BYTES_PER_COLOR];  /* Fill buffer in 16-bit little-endian format */

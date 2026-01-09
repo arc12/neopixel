@@ -30,10 +30,11 @@ typedef struct sNeopixel
 /*! \brief Create a neopixel context
   * \param pixels Number of pixels
   * \param dout_pin Physical pin to send neopixel data (e.g. GPIO_NUM_27) 
+  * \param rg_transpose Whether the LED has transposed red/green (datasheet says GRB but there are devices on the marked with RGB bit order)
   * \returns Pointer to neopixel context, used as the first parameter
   *          to subsequent neopixel function calls
   */
-tNeopixelContext *neopixel_Init(uint32_t pixels, int dout_pin);
+tNeopixelContext *neopixel_Init(uint32_t pixels, int dout_pin, bool rg_transpose);
 
 /*! \brief Get minimum number of ticks between neopixel_SetPixel calls
  *  \param ctx Neopixel context received from successful neopixel_Init calls

@@ -88,7 +88,7 @@ tNeopixelContext *neopixel_Init(uint32_t pixels, int dout_pin, bool rg_transpose
    c->buffer = (uint8_t *)malloc(c->bufferSize);
    memset(c->buffer, 0, c->bufferSize); /* initializes the reset bytes to zero */
    for(int i = 0; i < c->pixels; ++i)
-      setpixel(c->buffer, i, NP_RGB(0, 0, 0));  /* turn off all pixels */
+      setpixel(c->buffer, i, NP_RGB(0, 0, 0), rg_transpose);  /* turn off all pixels */
 
    i2s_new_channel(&chan_cfg, &c->i2s, NULL);  /* Tx channel only (no Rx) */
    i2s_channel_init_std_mode(c->i2s, &std_cfg);
